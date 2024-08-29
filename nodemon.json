@@ -1,0 +1,14 @@
+{
+  "restartable": "rs",
+  "verbose": true,
+  "watch": [
+    "err.txt",
+    "index.js"
+  ],
+  "ignore": [
+    "test/*.spec.ts"
+  ],
+  "delay": "1000",
+  "exec": "node index.js",
+  "ext": "ts ejs yml json"
+}
