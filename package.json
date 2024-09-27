@@ -5,8 +5,7 @@
   "dependencies": {
     "config": "^3.3.12",
     "express": "^4.18.2",
-    "my-node-rtsp-stream": "^0.0.1",
-    "node-rtsp-stream": "^0.0.9",
+    "my-node-rtsp-stream": "^0.0.3",
     "nodemon": "^3.0.1",
     "ws": "^8.13.0"
   }

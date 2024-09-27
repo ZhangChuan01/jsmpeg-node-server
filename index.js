@@ -59,8 +59,9 @@ function initStream(url,port){
     })
     stream.on('exit', () => {
       try {
-        // console.log('exitexitexitexitexitexitexitexitexitexit222')
+        console.log('exitexitexitexitexitexitexitexitexitexit222')
         stream.stop()
+        console.log('asdasdasddddddddddddddd')
         // restart()
         removeVideo(port)
       } catch (error) {
