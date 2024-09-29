@@ -116,22 +116,26 @@ app.post('/showVideo', async (req, res) => {
   console.log('pppp',ports,channels)
   // res.send({ port })
   if(ports.includes(0)){
-    ports.forEach((port,index) => {
-      if(port === 0){
-        const newPort = getPort()
-        if(newPort){
-          ports[index] = newPort
+    for(let i = 0; i < ports.length; i++){
+      if(ports[i] === 0){
+        const newPort = await getPort()
+        console.log('newPort',newPort)
+        if(newPort !== 0){
+          console.log('iniital',newPort)
+          ports[i] = newPort
           lastPort = newPort
           currentStreamList.push({
-            id: camera.ip + channels[index],
+            id: camera.ip + channels[i],
             ip: camera.ip,
             port: newPort,
-            rtsp_url: `rtsp://${camera.username}:${camera.password}@${camera.ip}:554/Streaming/Channels/${channels[index]}`,
-            stream: initStream(`rtsp://${camera.username}:${camera.password}@${camera.ip}:554/Streaming/Channels/${channels[index]}`,newPort)
+            rtsp_url: `rtsp://${camera.username}:${camera.password}@${camera.ip}:554/Streaming/Channels/${channels[i]}`,
+            stream: initStream(`rtsp://${camera.username}:${camera.password}@${camera.ip}:554/Streaming/Channels/${channels[i]}`,newPort)
           })
+        }else{
+          restart()
         }
       }
-    })
+    }
   }
   res.send({ ports,ip:camera.ip })
 })
@@ -149,8 +153,20 @@ function checkCamera(camera,channels){
   return ports
 }
 function getPort(){
-  const currentPortList = currentStreamList.map(stream => stream.port)
-  return portList.find(port => !currentPortList.includes(port) && port !== lastPort)
+  return new Promise(async reslove => {
+    const currentPortList = currentStreamList.map(stream => stream.port)
+    for(let i = 0; i < portList.length; i++){
+      const port = portList[i]
+      // console.log('fffffff',port)
+      if(!currentPortList.includes(port) && port !== lastPort){
+        const res = await checkPort(port)
+        // console.log('getPort1111', res)
+        reslove(port)
+        break
+      }
+    }
+    reslove(0)
+  })
 }
 function removeVideo(port){
   const index = currentStreamList.findIndex(stream => stream.port === port)
@@ -160,4 +176,39 @@ function removeVideo(port){
     // console.log('removeVideo222222222222',currentStreamList)
     calcNum()
   }
+}
+function checkPort(port,callback){
+  return new Promise(reslove => {
+      const {exec} = require('child_process')
+      const cmd = `netstat -ano|findstr ${port}`
+      exec(cmd, (error, stdout, stderr) => {
+          /* 查看端口是否被占用， stdout 有值则说明占用了*/
+          console.log(1, error) // null
+          console.log(2, stdout) // => 2 '  TCP    0.0.0.0:3000           0.0.0.0:0              LISTENING       23732'
+          if (!error && stdout) { // 已存在端口
+              let pid = null
+              stdout.trim().split(/[\n|\r]/).forEach(item => {
+                  if (item.indexOf('LISTEN') !== -1 && !pid) {
+                      pid = item.split(/\s+/).pop()
+                  }
+              })
+              if (!pid) {
+                  console.log(`端口${port}未被占用`)
+                  reslove(true)
+              } else {
+                  // 然后拿到端口id 就是上面的23732
+                  console.log(`存在冲突端口:${port},pid为${pid}`)
+                  reslove(false)
+                  // exec(`taskkill /pid ${pid} -t -f`, (error, stdout) => { // 直接杀死
+                  //     console.log(`冲突端口:${port},pid为${pid}已被关闭`)
+                  //     callback && callback()
+                  // })
+              }
+  
+          } else {
+              console.log(`端口${port}未被占用,继续进行`)
+              reslove(true)
+          }
+      })
+  })
 }
