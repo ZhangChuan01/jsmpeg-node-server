@@ -1,3 +1,4 @@
+const queue = require('fastq').promise(getPort, 1)
 const express = require('express');
 const Stream = require("my-node-rtsp-stream");
 const fs = require('fs');
@@ -106,31 +107,26 @@ const currentStreamList = []
 let lastPort = 0
 
 // 获取视频流
-app.post('/showVideo', async (req, res) => {
+app.post('/showVideo/init', async (req, res) => {
   const camera = req.body
   let channels = ['102']
   if(camera.channels){
     channels = camera.channels
   }
   let ports = checkCamera(camera,channels)
-  console.log('pppp',ports,channels)
+  console.log('pppp',camera,ports,channels) 
   // res.send({ port })
   if(ports.includes(0)){
     for(let i = 0; i < ports.length; i++){
       if(ports[i] === 0){
-        const newPort = await getPort()
+        const newPort = await queue.push({camera,streamid: camera.ip + channels[i]})
         console.log('newPort',newPort)
-        if(newPort !== 0){
+        if(newPort.port !== 0){
           console.log('iniital',newPort)
-          ports[i] = newPort
-          lastPort = newPort
-          currentStreamList.push({
-            id: camera.ip + channels[i],
-            ip: camera.ip,
-            port: newPort,
-            rtsp_url: `rtsp://${camera.username}:${camera.password}@${camera.ip}:554/Streaming/Channels/${channels[i]}`,
-            stream: initStream(`rtsp://${camera.username}:${camera.password}@${camera.ip}:554/Streaming/Channels/${channels[i]}`,newPort)
-          })
+          ports[i] = newPort.port
+          if(newPort.status === 0){
+            initStream(`rtsp://${camera.username}:${camera.password}@${camera.ip}:554/Streaming/Channels/${channels[i]}`,newPort.port)
+          }
         }else{
           restart()
         }
@@ -138,6 +134,11 @@ app.post('/showVideo', async (req, res) => {
     }
   }
   res.send({ ports,ip:camera.ip })
+})
+// 重启服务
+app.get('/showVideo/restart', async (req, res) => {
+  restart()
+  res.send({ msg: '重启成功' })
 })
 function checkCamera(camera,channels){
   let ports = []
@@ -152,20 +153,37 @@ function checkCamera(camera,channels){
   })
   return ports
 }
-function getPort(){
+
+function getPort({camera,streamid} = data){
+  console.log('streamid', streamid)
   return new Promise(async reslove => {
-    const currentPortList = currentStreamList.map(stream => stream.port)
-    for(let i = 0; i < portList.length; i++){
-      const port = portList[i]
-      // console.log('fffffff',port)
-      if(!currentPortList.includes(port) && port !== lastPort){
-        const res = await checkPort(port)
-        // console.log('getPort1111', res)
-        reslove(port)
-        break
+    const target = currentStreamList.find(stream => stream.id === streamid)
+    if(target){
+      reslove({port: target.port,status: 1})
+    }else{
+      const currentPortList = currentStreamList.map(stream => stream.port)
+      console.log('current', currentStreamList)
+      for(let i = 0; i < portList.length; i++){
+        const port = portList[i]
+        // console.log('fffffff',port)
+        if(!currentPortList.includes(port) && port !== lastPort){
+          const res = await checkPort(port)
+          console.log('getPort1111', res)
+          if(res){
+            lastPort = port
+            currentStreamList.push({
+              id: streamid,
+              ip: camera.ip,
+              port,
+              rtsp_url: `rtsp://${camera.username}:${camera.password}@${camera.ip}:554/Streaming/Channels/${port}`
+            })
+            reslove({port,status: 0})
+            break
+          }
+        }
       }
     }
-    reslove(0)
+    reslove({port: 0,status: 0})
   })
 }
 function removeVideo(port){
