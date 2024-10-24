@@ -20,14 +20,29 @@ const initWsServer = (port) => {
       if(index > -1){
         sockets.splice(index, 1)
       }
+      if(sockets.length === 0){
+        restart()
+      }
     })
     sockets.push(socket)
+  })
+  wsServer.on('close', () => {
+    console.log('ws close')
+    wsServer = null
+    restart()
+  })
+  wsServer.on("error", (error) => {
+    console.log('ws error')
+    wsServer = null
+    restart()
   })
 }
 initWsServer(5500)
 function restart(){
   console.log('restart')
-  wsServer.close()
+  if(wsServer){
+    wsServer.close()
+  }
   try {
     sockets.forEach(socket => {
       socket.send('restart')
