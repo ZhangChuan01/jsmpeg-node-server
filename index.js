@@ -210,10 +210,20 @@ function removeVideo(port){
     calcNum()
   }
 }
+function getCmdStr(port){
+  const osValue = process.platform
+  console.log('getSystem',process.platform)
+  if(osValue === 'win32'){
+    return `netstat -ano|findstr ${port}`
+  }else {
+    return `lsof -i:${port}`
+  }
+}
+// getSystem()
 function checkPort(port,callback){
   return new Promise(reslove => {
       const {exec} = require('child_process')
-      const cmd = `netstat -ano|findstr ${port}`
+      const cmd = getCmdStr(port)
       exec(cmd, (error, stdout, stderr) => {
           /* 查看端口是否被占用， stdout 有值则说明占用了*/
           console.log(1, error) // null
