@@ -140,7 +140,11 @@ app.post('/showVideo/init', async (req, res) => {
           console.log('iniital',newPort)
           ports[i] = newPort.port
           if(newPort.status === 0){
-            initStream(`rtsp://${camera.username}:${camera.password}@${camera.ip}:554/Streaming/Channels/${channels[i]}`,newPort.port)
+            if(typeof channels[i] === 'number'){
+              initStream(`rtsp://${camera.username}:${camera.password}@${camera.ip}:554/Streaming/Channels/${channels[i]}`,newPort.port)
+            }else{
+              initStream(`rtsp://${camera.username}:${camera.password}@${camera.ip}:554${channels[i]}`,newPort.port)
+            }
           }
         }else{
           restart()
