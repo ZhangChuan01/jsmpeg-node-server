@@ -1,0 +1,17 @@
+[Unit]
+Description=Video Service
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/samsino/front/jsmpeg-node-server-main
+ExecStart=/bin/bash /samsino/front/jsmpeg-node-server-main/video.sh
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/usr/local/ffmpeg/bin"
+Environment="FFMPEG_PATH=/usr/local/ffmpeg/bin/ffmpeg""
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
